@@ -11,7 +11,7 @@ to_egsa87 = Transformer.from_crs("EPSG:4326", "EPSG:2100", always_xy=True)
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
-    mode = request.form.get("mode", "egsa_to_wgs")
+    mode = request.form.get("mode", "wgs_to_egsa")
 
     if request.method == "POST":
         action = request.form.get("action")
