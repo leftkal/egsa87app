@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coordinate Converter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/static/favicon.ico">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Coordinate Converter</h2>
+
+    <!-- Conversion Form -->
+    <form method="post" class="card p-4 shadow-sm" id="convertForm">
+        <input type="hidden" name="mode" value="{{ mode }}">
+        <input type="hidden" name="action" value="convert">
+
+        {% if mode == 'egsa_to_wgs' %}
+            <label>X (East - EGSA87):</label>
+            <input type="number" step="any" class="form-control mb-3" name="val1" required>
+
+            <label>Y (North - EGSA87):</label>
+            <input type="number" step="any" class="form-control mb-3" name="val2" required>
+        {% else %}
+            <label>Longitude (WGS84):</label>
+            <input type="number" step="any" class="form-control mb-3" name="val1" id="lonInput" required>
+
+            <label>Latitude (WGS84):</label>
+            <input type="number" step="any" class="form-control mb-3" name="val2" id="latInput" required>
+
+            <button type="button" class="btn btn-outline-success mb-3" onclick="getLocation()">Use My Location</button>
+        {% endif %}
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">Convert</button>
+        </div>
+    </form>
+
+    <!-- Mode Toggle Form -->
+    <form method="post" class="text-center mt-3">
+        <input type="hidden" name="mode" value="{{ mode }}">
+        <input type="hidden" name="action" value="switch">
+        <button type="submit" class="btn btn-outline-secondary">
+            Switch to {{ 'WGS84 → EGSA87' if mode == 'egsa_to_wgs' else 'EGSA87 → WGS84' }}
+        </button>
+    </form>
+
+    {% if result %}
+        <div class="mt-4">
+            {% if result.error %}
+                <div class="alert alert-danger">{{ result.error }}</div>
+            {% else %}
+                <h4>Converted Coordinates:</h4>
+                {% if result.lat %}
+                    <p><strong>Input X (EGSA87):</strong> {{ result.input_x }}</p>
+                    <p><strong>Input Y (EGSA87):</strong> {{ result.input_y }}</p>
+                    <p><strong>Latitude:</strong> {{ result.lat }}</p>
+                    <p><strong>Longitude:</strong> {{ result.lon }}</p>
+                    <button onclick="copyCoords('{{ result.lat }}', '{{ result.lon }}')" class="btn btn-sm btn-outline-secondary">Copy Coordinates</button>
+                {% elif result.x %}
+                    <p><strong>Input Latitude (WGS84):</strong> {{ result.input_lat }}</p>
+                    <p><strong>Input Longitude (WGS84):</strong> {{ result.input_lon }}</p>
+                    <p><strong>X (EGSA87):</strong> {{ result.x }}</p>
+                    <p><strong>Y (EGSA87):</strong> {{ result.y }}</p>
+                    <button onclick="copyCoords('{{ result.y }}', '{{ result.x }}')" class="btn btn-sm btn-outline-secondary">Copy Coordinates</button>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if result and not result.error %}
+        <div id="map"></div>
+        <script>
+            {% if mode == 'egsa_to_wgs' %}
+                var lat = {{ result.lat }};
+                var lon = {{ result.lon }};
+            {% else %}
+                var lat = {{ result.input_lat }};
+                var lon = {{ result.input_lon }};
+            {% endif %}
+
+            var map = L.map('map').setView([lat, lon], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            L.marker([lat, lon]).addTo(map).bindPopup("Converted Point").openPopup();
+        </script>
+    {% endif %}
+</div>
+
+<script>
+    function copyCoords(lat, lon) {
+        navigator.clipboard.writeText(`${lat}, ${lon}`).then(() => {
+            alert("Coordinates copied to clipboard.");
+        });
+    }
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                document.getElementById('latInput').value = position.coords.latitude.toFixed(6);
+                document.getElementById('lonInput').value = position.coords.longitude.toFixed(6);
+            }, function () {
+                alert("Failed to retrieve location.");
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+</script>
+
+</body>
+</html>
